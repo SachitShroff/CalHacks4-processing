@@ -8,13 +8,14 @@ import timeit
 import json
 import requests
 import httplib
+import google.gax.errors
 
 A_CLASS_NAME = "61A" #TODO: SET FINAL CLASS NAME
 B_CLASS_NAME = "61B" #TODO: SET FINAL CLASS NAME
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "CalHacks-8f56181f7e42.json"
 GCS_API_KEY = "AIzaSyBy6MNhLhTbs0vKoBqsoYdyQDq6ceCoNag"
-audioURIS = ["gs://calhacksproject/audiofiles/test2.wav"]
-delimiters = set([" ", ",", ".", "!", "?"])
+#audioURIS = ["gs://calhacksproject/audiofiles/test2.wav"]
+#delimiters = set([" ", ",", ".", "!", "?"])
 AZ_API_KEY = "22c658f2b8784b55aed7e2f689008908"
 
 def processAudio(audioURIS, className=None):
@@ -43,14 +44,18 @@ def transcribeAudio(audioURIS):
     """Asynchronously transcribes the audio files specified by the audioURIS."""
     operations=[]
     for audioURI in audioURIS:
-        client = speech.SpeechClient()
-        audio = types.RecognitionAudio(uri=audioURI)
-        config = types.RecognitionConfig(
-            encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16, #CHANGE THIS
-            sample_rate_hertz=16000, #CHANGE THIS
-            language_code='en-US')
-        operation = client.long_running_recognize(config, audio)
-        operations.append(operation)
+        try:
+            client = speech.SpeechClient()
+            audio = types.RecognitionAudio(uri=audioURI)
+            config = types.RecognitionConfig(
+                encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16, #CHANGE THIS
+                sample_rate_hertz=16000, #CHANGE THIS
+                language_code='en-US')
+            operation = client.long_running_recognize(config, audio)
+            operations.append(operation)
+        except google.gax.errors.GaxError as e:
+            print("ERROR:")
+            print(audioURI)
     assert len(operations) == len(audioURIS), "An operation was not generated for every ausio file"
     responses = []
     for operation in operations:
@@ -162,24 +167,41 @@ def allOpsComplete(operations):
         if not operation.complete:
             return False
 """
-def gen61afiles():
-    return None
-
 def gen61bFiles():
-    return None
+    names = []
+    prefix = "CS61B("
+    suffix = ").wav"
+    for i in range (1,108):
+        fileName = prefix + str(i) + suffix
+        names.append(fileName)
+    return ["gs://calhacksproject/CS61B/" + name for name in names]
 
-def runInChunks(files, className):
-    return None
+def gen61aFiles():
+    names = []
+    prefix = "CS61A ("
+    suffix = ").wav"
+    for i in range (1,108):
+        if (i != 90):
+            fileName = prefix + str(i) + suffix
+            names.append(fileName)
+    temp = ["gs://calhacksproject/CS61A/" + name for name in names]
+    return [temp[i*9:min(len(temp), (i+1)*9)] for i in range(len(temp)//9)]
 
-def mainProcess():
-    print("Generating 61A Filenames")
-    sixOneAFiles = gen61aFiles()
-    print("Generating 61B FIlenames")
-    sixOneBFiles = gen61bFiles()
-    print("Starting 61a processing")
-    processAudio(sixOneAFiles, className=A_CLASS_NAME)
-    print("Starting 61b processing")
-    processAudio(sixOneBFiles, className=B_CLASS_NAME)
+def mainProcess(process61A=True, process61B=True, startIndex = 0):
+    if process61A:
+        print("Generating 61A Filenames")
+        sixOneAFiles = gen61aFiles()
+        print("Starting 61a processing " + str(len(sixOneAFiles)))
+        for i in range(startIndex, len(sixOneAFiles)):
+            fileBunch = sixOneAFiles[i]
+            processAudio(fileBunch, className=A_CLASS_NAME)
+    if process61B:
+        print("Generating 61B FIlenames")
+        sixOneBFiles = gen61bFiles()
+        print("Starting 61b processing")
+        for i in range(startIndex, len(sixOneBFiles)):
+            fileBunch = sixOneBFiles[i]
+            processAudio(fileBunch, className=B_CLASS_NAME)
 
 
 
