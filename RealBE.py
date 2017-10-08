@@ -9,6 +9,8 @@ import json
 import requests
 import httplib
 
+A_CLASS_NAME = "61A" #TODO: SET FINAL CLASS NAME
+B_CLASS_NAME = "61B" #TODO: SET FINAL CLASS NAME
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "CalHacks-8f56181f7e42.json"
 GCS_API_KEY = "AIzaSyBy6MNhLhTbs0vKoBqsoYdyQDq6ceCoNag"
 audioURIS = ["gs://calhacksproject/audiofiles/test2.wav"]
@@ -32,8 +34,8 @@ def processAudio(audioURIS, className=None):
         relatedResources = getRelatedResources(keywords)
         passData.append({"Audio_URL":audioURI, "Topics":keywords, "Related_Resources":relatedResources})
     data = {"ClassName":className, "Videos":passData}
-    r = requests.post("https://safe-spire-89119.herokuapp.com/api/v1/classes/upload", data=data)
-    print(data)
+    print("Sending post request with info to backend web server server")
+    r = requests.post("https://safe-spire-89119.herokuapp.com/api/v1/classes/upload", data=json.dumps(data))
 
 
 
@@ -52,7 +54,7 @@ def transcribeAudio(audioURIS):
     assert len(operations) == len(audioURIS), "An operation was not generated for every ausio file"
     responses = []
     for operation in operations:
-        response = operation.result(timeout=300)
+        response = operation.result(timeout=600)
         responses.append(response)
     assert len(operations) == len(responses), "Responses were not generated for every operation"
     transcriptions = []
@@ -162,10 +164,26 @@ def allOpsComplete(operations):
 """
 def gen61afiles():
     return None
+
 def gen61bFiles():
     return None
 
+def runInChunks(files, className):
+    return None
 
+def mainProcess():
+    print("Generating 61A Filenames")
+    sixOneAFiles = gen61aFiles()
+    print("Generating 61B FIlenames")
+    sixOneBFiles = gen61bFiles()
+    print("Starting 61a processing")
+    processAudio(sixOneAFiles, className=A_CLASS_NAME)
+    print("Starting 61b processing")
+    processAudio(sixOneBFiles, className=B_CLASS_NAME)
+
+
+
+"""
 print ("TESTING")
 print("Running sample file (10 mins, LINEAR16, 16kHz)")
 start_time = timeit.default_timer()
@@ -173,3 +191,4 @@ processAudio(audioURIS, className="TESTING")
 elapsed = timeit.default_timer() - start_time
 print("TIME ELAPSED:")
 print(elapsed)
+"""
